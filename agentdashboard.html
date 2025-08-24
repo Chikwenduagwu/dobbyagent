@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DOBBY AGENTFI - ANALYZE DASHBOARD</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --card:#141a22;
+      --card-2:#0f141b;
+      --text:#e7edf5;
+      --muted:#9aa4b2;
+      --good:#27c281;
+      --bad:#ff4d4f;
+      --accent:#ff7a18; /* orange */
+      --accent-2:#ff9b40;
+      --ring:rgba(255,122,24,0.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      background: radial-gradient(1200px 800px at 20% -10%, #1a222d 0%, transparent 60%),
+                  radial-gradient(1200px 800px at 120% 10%, #131a22 0%, transparent 60%),
+                  linear-gradient(180deg, var(--bg), #0a0f14);
+      color:var(--text);
+      padding:24px;
+    }
+    .app{
+      max-width:1100px;
+      margin:0 auto;
+      display:grid;
+      gap:18px;
+    }
+    .header{
+      display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    }
+    .title{
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo{
+      width:38px; height:38px; border-radius:10px;
+      background: conic-gradient(from 210deg, var(--accent), var(--accent-2));
+      box-shadow:0 0 0 4px rgba(255, 122, 24, 0.15), 0 6px 24px rgba(0,0,0,0.35) inset;
+    }
+    h1{font-size:20px; margin:0}
+    .sub{color:var(--muted); font-size:13px}
+
+    .card{
+      background:linear-gradient(180deg, var(--card), var(--card-2));
+      border:1px solid rgba(255,255,255,0.06);
+      border-radius:14px; padding:16px;
+      box-shadow: 0 12px 38px rgba(0,0,0,0.35), 0 1px 0 rgba(255,255,255,0.04) inset;
+    }
+    .card h2{
+      margin:0 0 10px; font-size:15px; letter-spacing:.2px;
+      color:#ffe1cf;
+    }
+    .row{display:flex; gap:12px; flex-wrap:wrap}
+    .grow{flex:1 1 320px}
+    .controls{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      background:rgba(255,255,255,0.02);
+      padding:12px; border-radius:12px;
+      border:1px solid rgba(255,255,255,0.05);
+    }
+    .input{
+      position:relative; flex:1 1 360px; min-width:240px;
+    }
+    .input input{
+      width:100%; background:#0e141b; color:var(--text);
+      border:1px solid rgba(255,255,255,0.08);
+      outline:none; padding:12px 12px 12px 42px; border-radius:12px; font-size:15px;
+      box-shadow:0 0 0 0 transparent;
+      transition:border .15s, box-shadow .15s;
+    }
+    .input input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px var(--ring) }
+    .input .hint{
+      position:absolute; left:12px; top:50%; transform:translateY(-50%);
+      font-size:14px; opacity:.7
+    }
+    .btn{
+      background:linear-gradient(180deg, var(--accent), var(--accent-2));
+      color:#1a0e05; border:none; border-radius:12px; padding:12px 16px;
+      font-weight:700; letter-spacing:.2px; cursor:pointer;
+      box-shadow:0 6px 16px rgba(255,122,24,.25);
+      transition:transform .06s ease, filter .2s ease, box-shadow .2s ease;
+    }
+    .btn:hover{ filter:brightness(1.05); box-shadow:0 10px 22px rgba(255,122,24,.28) }
+    .btn:active{ transform:translateY(1px) }
+    .btn.ghost{
+      background:transparent; color:var(--text); border:1px solid rgba(255,255,255,0.12)
+    }
+
+    .grid{
+      display:grid; grid-template-columns: repeat(12, 1fr); gap:14px;
+    }
+    .col-5{ grid-column: span 5 }
+    .col-7{ grid-column: span 7 }
+    @media (max-width: 900px){
+      .col-5, .col-7{ grid-column: 1 / -1 }
+    }
+
+    .kv{display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center; padding:6px 0; border-bottom:1px dashed rgba(255,255,255,0.06)}
+    .kv:last-child{border-bottom:none}
+    .kv .k{ color:var(--muted); font-size:13px }
+    .kv .v{ font-weight:700 }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px; padding:6px 10px;
+      background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+      border-radius:999px; font-size:12px; color:var(--muted);
+    }
+    .delta{ font-weight:700; padding:2px 8px; border-radius:999px; }
+    .delta.up{ color:#0e2; background:rgba(0,255,120,0.1); border:1px solid rgba(0,255,120,0.2) }
+    .delta.down{ color:#f66; background:rgba(255,0,0,0.1); border:1px solid rgba(255,0,0,0.2) }
+
+    .loading{
+      display:flex; gap:10px; align-items:center; color:var(--muted);
+      font-size:14px; padding:12px 0;
+    }
+    .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); animation:b 1s infinite }
+    .dot:nth-child(2){ animation-delay:.2s } .dot:nth-child(3){ animation-delay:.4s }
+    @keyframes b{ 0%,100%{ transform:translateY(0); opacity:.6 } 50%{ transform:translateY(-4px); opacity:1 } }
+
+    .code{
+      white-space:pre-wrap; background:#0c1218; border:1px solid rgba(255,255,255,0.06);
+      border-radius:12px; padding:12px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      color:#e8f1ff;
+    }
+    .toolbar{ display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:8px }
+
+    .toast{
+      position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+      background:#0f141b; border:1px solid rgba(255,255,255,0.12); color:var(--text);
+      padding:10px 14px; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.35);
+      display:none; z-index:50;
+    }
+    .warn{ color:#ffd7d7 }
+    .muted{ color:var(--muted) }
+
+    .typing-cursor::after {
+      content: '▊';
+      color: var(--accent);
+      animation: blink 1s infinite;
+    }
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div class="title">
+          <img src="images/redsentient.png" width="60px" height="60px">
+        <div>
+          <h1>Dobby AgentFI</h1>
+          <div class="sub">Paste a token contract and get a crisp 24h investor snapshot + AI insights.</div>
+        </div>
+      </div>
+      <div class="pill" id="lastUpdated">Last updated: —</div>
+    </div>
+
+    <div class="card">
+      <div class="controls">
+        <div class="input">
+          <span class="hint">CA</span>
+          <input id="ca" placeholder="e.g. 0x0000000000000000000000000000000000000000" />
+        </div>
+        <button class="btn" id="analyzeBtn">Analyze</button>
+        <button class="btn ghost" id="resetBtn">Reset</button>
+        <button class="btn ghost" id="copyBtn">Copy CA</button>
+      </div>
+        <p>Please only paste Eth(erc-20) Contract address as only ETH chain is supported at the moment, more chains will be added gradually in the future.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card col-5" id="tokenCard">
+        <h2>Token Overview</h2>
+        <div id="tokenOverview" class="muted">Enter a contract address and click <strong>Analyze to get analysis information and Insights from Dobby</strong>.</div>
+      </div>
+
+      <div class="card col-7" id="metricsCard">
+        <h2>Market Metrics (24h)</h2>
+        <div id="metrics">
+          <div class="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Waiting for input(if you have already executed "analyze" please wait)…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Professional Insights by Dobby</h2>
+      <div id="aiState" class="loading" style="display:none">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span> Dobby is analyzing on-chain metrics…
+      </div>
+      <div id="insights" class="code muted">No insights yet.</div>
+      <div class="toolbar">
+        <button class="btn" id="regenBtn" disabled>Regenerate analysis from dobby</button>
+        <button class="btn ghost" id="copyInsightsBtn" disabled>Copy Insights</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // ====== CONFIG ======
+    const FIREWORKS_API_KEY = "fw_3ZYt5vRJztdY1fXajRko5YCt";
+    const DEX_URL = (ca) => `https://api.dexscreener.com/latest/dex/tokens/${encodeURIComponent(ca)}`;
+
+    // ====== HELPERS ======
+    const $ = (id) => document.getElementById(id);
+    const fmtUSD = (n) => (n === undefined || n === null || isNaN(Number(n))) ? "—" :
+      (Number(n) >= 1 ? `$${Number(n).toLocaleString(undefined,{maximumFractionDigits:2})}` :
+       `$${Number(n).toExponential(2)}`);
+    const fmtNum = (n) => (n === undefined || n === null || isNaN(Number(n))) ? "—" :
+      Number(n).toLocaleString();
+    const fmtPct = (n) => (n === undefined || n === null || isNaN(Number(n))) ? "—" :
+      `${Number(n).toFixed(2)}%`;
+    function toast(msg, ms=2200){ const t=$("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none", ms); }
+    function setLastUpdated(){ $("lastUpdated").textContent = "Last updated: " + new Date().toLocaleTimeString(); }
+
+    // ====== TYPING ANIMATION ======
+    function typeContent(element, content, delay = 70) {
+      return new Promise((resolve) => {
+        element.innerHTML = '';
+        element.classList.add('typing-cursor');
+        
+        let index = 0;
+        const type = () => {
+          if (index < content.length) {
+            element.innerHTML = content.substring(0, index + 1);
+            index++;
+            setTimeout(type, delay);
+          } else {
+            element.classList.remove('typing-cursor');
+            resolve();
+          }
+        };
+        type();
+      });
+    }
+
+    // ====== FORMAT AND PROCESS TEXT FOR BOLD ======
+    function formatTextWithBold(text) {
+      // Handle markdown-style bold (**text** or *text*)
+      text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      text = text.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+      
+      // Handle hashtag headers (convert to bold)
+      text = text.replace(/^### (.*$)/gm, '<strong>$1</strong>');
+      text = text.replace(/^## (.*$)/gm, '<strong>$1</strong>');
+      text = text.replace(/^# (.*$)/gm, '<strong>$1</strong>');
+      
+      // Handle bullet points and preserve line breaks
+      text = text.replace(/\n/g, '<br>');
+      text = text.replace(/• /g, '• ');
+      text = text.replace(/- /g, '• ');
+      
+      return text;
+    }
+
+    function bestPair(pairs){
+      if(!pairs || !pairs.length) return null;
+      // Prefer highest liquidity, then volume
+      return pairs.slice().sort((a,b)=>{
+        const la=(a.liquidity?.usd||0), lb=(b.liquidity?.usd||0);
+        if(lb!==la) return lb-la;
+        const va=(a.volume?.h24||0), vb=(b.volume?.h24||0);
+        return vb-va;
+      })[0];
+    }
+
+    async function renderOverview(pair){
+      if(!pair){ 
+        $("tokenOverview").innerHTML = '<span class="warn">No token data found for this CA.</span>'; 
+        return; 
+      }
+      
+      const price = pair.priceUsd ? `$${Number(pair.priceUsd).toLocaleString(undefined,{maximumFractionDigits:8})}` : "—";
+      const ch = pair.priceChange?.h24;
+      const deltaCls = ch >= 0 ? "up" : "down";
+      
+      const content = `
+        <div class="kv"><div class="k">Pair</div><div class="v">${pair.baseToken?.symbol || "—"} / ${pair.quoteToken?.symbol || "—"}</div></div>
+        <div class="kv"><div class="k">DEX</div><div class="v">${pair.dexId || "—"}</div></div>
+        <div class="kv"><div class="k">Chain</div><div class="v">${pair.chainId || pair.chain || "—"}</div></div>
+        <div class="kv"><div class="k">Price</div><div class="v">${price}</div></div>
+        <div class="kv"><div class="k">24h Change</div><div class="v"><span class="delta ${deltaCls}">${fmtPct(ch)}</span></div></div>
+        <div class="kv"><div class="k">FDV</div><div class="v">${fmtUSD(pair.fdv)}</div></div>
+        <div class="kv"><div class="k">Liquidity (USD)</div><div class="v">${fmtUSD(pair.liquidity?.usd)}</div></div>
+      `;
+      
+      await typeContent($("tokenOverview"), content);
+    }
+
+    async function renderMetrics(pair){
+      if(!pair){ 
+        $("metrics").innerHTML = '<span class="warn">No 24h metrics available.</span>'; 
+        return; 
+      }
+      
+      const tx = pair.txns?.h24 || {};
+      const content = `
+        <div class="kv"><div class="k">Volume (24h)</div><div class="v">${fmtUSD(pair.volume?.h24)}</div></div>
+        <div class="kv"><div class="k">Transactions (24h)</div><div class="v">${fmtNum((tx.buys||0)+(tx.sells||0))}</div></div>
+        <div class="kv"><div class="k">Buys (count)</div><div class="v">${fmtNum(tx.buys)}</div></div>
+        <div class="kv"><div class="k">Sells (count)</div><div class="v">${fmtNum(tx.sells)}</div></div>
+        <div class="kv"><div class="k">Buy Share</div><div class="v">${
+          (tx.buys||tx.sells) ? ((tx.buys/(tx.buys+tx.sells))*100).toFixed(1)+'%' : '—'
+        }</div></div>
+      `;
+      
+      await typeContent($("metrics"), content);
+    }
+
+    function setInsightsLoading(loading){
+      $("aiState").style.display = loading ? "flex":"none";
+      $("regenBtn").disabled = loading;
+      $("copyInsightsBtn").disabled = loading;
+      if(loading){ $("insights").classList.add("muted"); $("insights").textContent = "…"; }
+      else { $("insights").classList.remove("muted"); }
+    }
+
+    async function getDobbyInsights(pair, ca){
+      setInsightsLoading(true);
+      try{
+        const brief = {
+          ca,
+          pairAddress: pair?.pairAddress || pair?.pair || pair?.address || null,
+          base: pair?.baseToken?.symbol,
+          quote: pair?.quoteToken?.symbol,
+          chain: pair?.chainId || pair?.chain || "",
+          dex: pair?.dexId || "",
+          priceUsd: pair?.priceUsd ? Number(pair.priceUsd) : null,
+          change24h: pair?.priceChange?.h24 ?? null,
+          volume24h: pair?.volume?.h24 ?? null,
+          liquidityUsd: pair?.liquidity?.usd ?? null,
+          txns24h: pair?.txns?.h24 ?? null
+        };
+
+        const res = await fetch("https://api.fireworks.ai/inference/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type":"application/json",
+            "Authorization": `Bearer ${FIREWORKS_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: "accounts/sentientfoundation-serverless/models/dobby-mini-unhinged-plus-llama-3-1-8b",
+            temperature: 0.4,
+            max_tokens: 450,
+            messages: [
+              { role: "system", content: "You are Dobby, a professional crypto analyst. Provide concise, neutral, investor-grade insights for the last 24 hours. Use bullet points and bold text for important terms using **bold** syntax. Include: price trend, liquidity context, volume/txs structure (buy vs sell counts), notable risks, and a short actionable checklist. If data is missing, say so clearly." },
+              { role: "user", content: `Analyze this token snapshot and produce a 24h investor summary:\n${JSON.stringify(brief)}` }
+            ]
+          })
+        });
+
+        if(!res.ok){
+          const text = await res.text().catch(()=> "");
+          throw new Error(`AI HTTP ${res.status}: ${text}`);
+        }
+
+        const data = await res.json();
+        const rawText = data?.choices?.[0]?.message?.content
+          || data?.choices?.[0]?.text
+          || "No insight returned.";
+        
+        // Format the text with proper HTML bold tags
+        const formattedText = formatTextWithBold(rawText.trim());
+        
+        // Type out the formatted content
+        await typeContent($("insights"), formattedText);
+        setInsightsLoading(false);
+      }catch(err){
+        console.error("Dobby insights error:", err);
+        const errorMsg = `⚠️ Unable to generate insights right now.\n\nDetails: ${err.message || err}`;
+        await typeContent($("insights"), errorMsg);
+        setInsightsLoading(false);
+      }
+    }
+
+    async function analyze(){
+      const ca = $("ca").value.trim();
+      if(!ca){ toast("Please paste a contract address."); return; }
+
+      // Reset UI state
+      $("tokenOverview").innerHTML = `<div class="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Fetching token from Dexscreener…</div>`;
+      $("metrics").innerHTML = `<div class="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Loading 24h metrics…</div>`;
+      $("insights").innerHTML = "No insights yet.";
+      $("regenBtn").disabled = true;
+      $("copyInsightsBtn").disabled = true;
+      setLastUpdated();
+
+      try{
+        const r = await fetch(DEX_URL(ca));
+        if(!r.ok){ throw new Error(`Dexscreener HTTP ${r.status}`); }
+        const j = await r.json();
+        const pair = bestPair(j?.pairs || []);
+        
+        // Type out the results with animation
+        await renderOverview(pair);
+        await renderMetrics(pair);
+
+        if(!pair){ 
+          await typeContent($("insights"), "Cannot analyze without a detected trading pair.");
+          return; 
+        }
+
+        $("regenBtn").disabled = false;
+        $("copyInsightsBtn").disabled = false;
+        await getDobbyInsights(pair, ca);
+        setLastUpdated();
+      }catch(e){
+        console.error(e);
+        $("tokenOverview").innerHTML = `<span class="warn">Failed to load token data.</span>`;
+        $("metrics").innerHTML = `<span class="warn">Failed to load market metrics.</span>`;
+        await typeContent($("insights"), "—");
+        toast("Error loading data. Try again.");
+      }
+    }
+
+    // ====== EVENTS ======
+    $("analyzeBtn").addEventListener("click", analyze);
+    $("resetBtn").addEventListener("click", ()=>{
+      $("ca").value = "";
+      $("tokenOverview").innerHTML = 'Enter a contract address and click <strong>Analyze</strong>.';
+      $("metrics").innerHTML = `<div class="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Waiting for input…</div>`;
+      $("insights").innerHTML = "No insights yet.";
+      $("regenBtn").disabled = true;
+      $("copyInsightsBtn").disabled = true;
+    });
+    $("copyBtn").addEventListener("click", ()=>{
+      const v = $("ca").value.trim(); if(!v){ toast("Nothing to copy."); return; }
+      navigator.clipboard.writeText(v).then(()=> toast("Contract copied."));
+    });
+    $("regenBtn").addEventListener("click", async ()=>{
+      const ca = $("ca").value.trim();
+      if(!ca){ toast("Add a contract first."); return; }
+      // Try to re-use last fetched data by calling Dexscreener quickly
+      try{
+        const r = await fetch(DEX_URL(ca));
+        const j = await r.json();
+        const pair = bestPair(j?.pairs || []);
+        if(!pair){ toast("No pair found to analyze."); return; }
+        await getDobbyInsights(pair, ca);
+        setLastUpdated();
+      }catch(e){ toast("Could not refresh insights."); }
+    });
+    $("copyInsightsBtn").addEventListener("click", ()=>{
+      const txt = $("insights").innerText.trim();
+      if(!txt){ toast("Nothing to copy."); return; }
+      navigator.clipboard.writeText(txt).then(()=> toast("Insights copied."));
+    });
+    $("ca").addEventListener("keydown", (e)=>{ if(e.key==="Enter") analyze(); });
+  </script>
+</body>
+</html>
