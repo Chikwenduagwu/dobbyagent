@@ -1,2 +1,4 @@
 # dobbyagent
-Dobby agentfi for onchain analysis-hs
+Dobby agent is designed to monitor and analyze onchain metrics and insights on ETH chain, powered by dobby-unhinged-8b
+
+## Features
