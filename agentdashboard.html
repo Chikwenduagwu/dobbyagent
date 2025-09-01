@@ -81,6 +81,30 @@
       position:absolute; left:12px; top:50%; transform:translateY(-50%);
       font-size:14px; opacity:.7
     }
+    .chain-select {
+      position: relative;
+    }
+    .chain-select select {
+      background: #0e141b;
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.08);
+      outline: none;
+      padding: 12px 32px 12px 12px;
+      border-radius: 12px;
+      font-size: 15px;
+      min-width: 140px;
+      cursor: pointer;
+      transition: border .15s, box-shadow .15s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23e7edf5'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 16px;
+    }
+    .chain-select select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--ring);
+    }
     .btn{
       background:linear-gradient(180deg, var(--accent), var(--accent-2));
       color:#1a0e05; border:none; border-radius:12px; padding:12px 16px;
@@ -167,6 +191,37 @@
 
     <div class="card">
       <div class="controls">
+        <div class="chain-select">
+          <select id="chainSelect">
+            <option value="ethereum">Ethereum</option>
+            <option value="bsc">BSC</option>
+            <option value="polygon">Polygon</option>
+            <option value="avalanche">Avalanche</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="optimism">Optimism</option>
+            <option value="fantom">Fantom</option>
+            <option value="cronos">Cronos</option>
+            <option value="solana">Solana</option>
+            <option value="base">Base</option>
+            <option value="blast">Blast</option>
+            <option value="tron">Tron</option>
+            <option value="sui">Sui</option>
+            <option value="aptos">Aptos</option>
+            <option value="sei">Sei</option>
+            <option value="zksync">zkSync</option>
+            <option value="pulsechain">PulseChain</option>
+            <option value="linea">Linea</option>
+            <option value="scroll">Scroll</option>
+            <option value="mantle">Mantle</option>
+            <option value="manta">Manta</option>
+            <option value="mode">Mode</option>
+            <option value="metis">Metis</option>
+            <option value="moonbeam">Moonbeam</option>
+            <option value="celo">Celo</option>
+            <option value="kava">Kava</option>
+            <option value="osmosis">Osmosis</option>
+          </select>
+        </div>
         <div class="input">
           <span class="hint">CA</span>
           <input id="ca" placeholder="e.g. 0x0000000000000000000000000000000000000000" />
@@ -175,13 +230,13 @@
         <button class="btn ghost" id="resetBtn">Reset</button>
         <button class="btn ghost" id="copyBtn">Copy CA</button>
       </div>
-        <p>Please only paste Eth(erc-20) Contract address as only ETH chain is supported at the moment, more chains will be added gradually in the future.</p>
+        <p>Select a blockchain and paste the contract address. Multi-chain support allows you to analyze tokens across various networks supported by Dexscreener.</p>
     </div>
 
     <div class="grid">
       <div class="card col-5" id="tokenCard">
         <h2>Token Overview</h2>
-        <div id="tokenOverview" class="muted">Enter a contract address and click <strong>Analyze to get analysis information and Insights from Dobby</strong>.</div>
+        <div id="tokenOverview" class="muted">Select a chain, enter a contract address and click <strong>Analyze to get analysis information and Insights from Dobby</strong>.</div>
       </div>
 
       <div class="card col-7" id="metricsCard">
@@ -210,7 +265,39 @@
   <script>
     // ====== CONFIG ======
     const FIREWORKS_API_KEY = "fw_3ZYt5vRJztdY1fXajRko5YCt";
-    const DEX_URL = (ca) => `https://api.dexscreener.com/latest/dex/tokens/${encodeURIComponent(ca)}`;
+    
+    // Chain ID mapping for Dexscreener API
+    const CHAIN_MAPPING = {
+      'ethereum': 'ethereum',
+      'bsc': 'bsc',
+      'polygon': 'polygon',
+      'avalanche': 'avalanche',
+      'arbitrum': 'arbitrum',
+      'optimism': 'optimism',
+      'fantom': 'fantom',
+      'cronos': 'cronos',
+      'solana': 'solana',
+      'base': 'base',
+      'blast': 'blast',
+      'tron': 'tron',
+      'sui': 'sui',
+      'aptos': 'aptos',
+      'sei': 'sei',
+      'zksync': 'zksync',
+      'pulsechain': 'pulsechain',
+      'linea': 'linea',
+      'scroll': 'scroll',
+      'mantle': 'mantle',
+      'manta': 'manta',
+      'mode': 'mode',
+      'metis': 'metis',
+      'moonbeam': 'moonbeam',
+      'celo': 'celo',
+      'kava': 'kava',
+      'osmosis': 'osmosis'
+    };
+
+    const DEX_URL = (chain, ca) => `https://api.dexscreener.com/latest/dex/tokens/${encodeURIComponent(ca)}`;
 
     // ====== HELPERS ======
     const $ = (id) => document.getElementById(id);
@@ -264,10 +351,25 @@
       return text;
     }
 
-    function bestPair(pairs){
+    function bestPair(pairs, selectedChain){
       if(!pairs || !pairs.length) return null;
+      
+      // Filter pairs by selected chain if specified
+      let filteredPairs = pairs;
+      if(selectedChain && CHAIN_MAPPING[selectedChain]) {
+        filteredPairs = pairs.filter(pair => 
+          pair.chainId === CHAIN_MAPPING[selectedChain] || 
+          pair.chainId === selectedChain
+        );
+      }
+      
+      // If no pairs found for the selected chain, use all pairs as fallback
+      if(filteredPairs.length === 0) {
+        filteredPairs = pairs;
+      }
+      
       // Prefer highest liquidity, then volume
-      return pairs.slice().sort((a,b)=>{
+      return filteredPairs.slice().sort((a,b)=>{
         const la=(a.liquidity?.usd||0), lb=(b.liquidity?.usd||0);
         if(lb!==la) return lb-la;
         const va=(a.volume?.h24||0), vb=(b.volume?.h24||0);
@@ -277,7 +379,7 @@
 
     async function renderOverview(pair){
       if(!pair){ 
-        $("tokenOverview").innerHTML = '<span class="warn">No token data found for this CA.</span>'; 
+        $("tokenOverview").innerHTML = '<span class="warn">No token data found for this CA on the selected chain.</span>'; 
         return; 
       }
       
@@ -300,7 +402,7 @@
 
     async function renderMetrics(pair){
       if(!pair){ 
-        $("metrics").innerHTML = '<span class="warn">No 24h metrics available.</span>'; 
+        $("metrics").innerHTML = '<span class="warn">No 24h metrics available for the selected chain.</span>'; 
         return; 
       }
       
@@ -326,15 +428,16 @@
       else { $("insights").classList.remove("muted"); }
     }
 
-    async function getDobbyInsights(pair, ca){
+    async function getDobbyInsights(pair, ca, chain){
       setInsightsLoading(true);
       try{
         const brief = {
           ca,
+          chain: chain,
           pairAddress: pair?.pairAddress || pair?.pair || pair?.address || null,
           base: pair?.baseToken?.symbol,
           quote: pair?.quoteToken?.symbol,
-          chain: pair?.chainId || pair?.chain || "",
+          chainId: pair?.chainId || pair?.chain || "",
           dex: pair?.dexId || "",
           priceUsd: pair?.priceUsd ? Number(pair.priceUsd) : null,
           change24h: pair?.priceChange?.h24 ?? null,
@@ -354,8 +457,8 @@
             temperature: 0.4,
             max_tokens: 450,
             messages: [
-              { role: "system", content: "You are Dobby, a professional crypto analyst. Provide concise, neutral, investor-grade insights for the last 24 hours. Use bullet points and bold text for important terms using **bold** syntax. Include: price trend, liquidity context, volume/txs structure (buy vs sell counts), notable risks, and a short actionable checklist. If data is missing, say so clearly." },
-              { role: "user", content: `Analyze this token snapshot and produce a 24h investor summary:\n${JSON.stringify(brief)}` }
+              { role: "system", content: "You are Dobby, a professional crypto analyst. Provide concise, neutral, investor-grade insights for the last 24 hours. Use bullet points and bold text for important terms using **bold** syntax. Include: price trend, liquidity context, volume/txs structure (buy vs sell counts), notable risks, and a short actionable checklist. If data is missing, say so clearly. Also mention the blockchain network being analyzed." },
+              { role: "user", content: `Analyze this token snapshot on ${chain} blockchain and produce a 24h investor summary:\n${JSON.stringify(brief)}` }
             ]
           })
         });
@@ -386,10 +489,12 @@
 
     async function analyze(){
       const ca = $("ca").value.trim();
+      const selectedChain = $("chainSelect").value;
+      
       if(!ca){ toast("Please paste a contract address."); return; }
 
       // Reset UI state
-      $("tokenOverview").innerHTML = `<div class="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Fetching token from Dexscreener…</div>`;
+      $("tokenOverview").innerHTML = `<div class="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Fetching token from ${selectedChain} via Dexscreener…</div>`;
       $("metrics").innerHTML = `<div class="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Loading 24h metrics…</div>`;
       $("insights").innerHTML = "No insights yet.";
       $("regenBtn").disabled = true;
@@ -397,30 +502,30 @@
       setLastUpdated();
 
       try{
-        const r = await fetch(DEX_URL(ca));
+        const r = await fetch(DEX_URL(selectedChain, ca));
         if(!r.ok){ throw new Error(`Dexscreener HTTP ${r.status}`); }
         const j = await r.json();
-        const pair = bestPair(j?.pairs || []);
+        const pair = bestPair(j?.pairs || [], selectedChain);
         
         // Type out the results with animation
         await renderOverview(pair);
         await renderMetrics(pair);
 
         if(!pair){ 
-          await typeContent($("insights"), "Cannot analyze without a detected trading pair.");
+          await typeContent($("insights"), `Cannot analyze without a detected trading pair on ${selectedChain}.`);
           return; 
         }
 
         $("regenBtn").disabled = false;
         $("copyInsightsBtn").disabled = false;
-        await getDobbyInsights(pair, ca);
+        await getDobbyInsights(pair, ca, selectedChain);
         setLastUpdated();
       }catch(e){
         console.error(e);
-        $("tokenOverview").innerHTML = `<span class="warn">Failed to load token data.</span>`;
+        $("tokenOverview").innerHTML = `<span class="warn">Failed to load token data from ${selectedChain}.</span>`;
         $("metrics").innerHTML = `<span class="warn">Failed to load market metrics.</span>`;
         await typeContent($("insights"), "—");
-        toast("Error loading data. Try again.");
+        toast("Error loading data. Try again or switch chains.");
       }
     }
 
@@ -428,7 +533,8 @@
     $("analyzeBtn").addEventListener("click", analyze);
     $("resetBtn").addEventListener("click", ()=>{
       $("ca").value = "";
-      $("tokenOverview").innerHTML = 'Enter a contract address and click <strong>Analyze</strong>.';
+      $("chainSelect").selectedIndex = 0; // Reset to Ethereum
+      $("tokenOverview").innerHTML = 'Select a chain, enter a contract address and click <strong>Analyze</strong>.';
       $("metrics").innerHTML = `<div class="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span> Waiting for input…</div>`;
       $("insights").innerHTML = "No insights yet.";
       $("regenBtn").disabled = true;
@@ -440,14 +546,15 @@
     });
     $("regenBtn").addEventListener("click", async ()=>{
       const ca = $("ca").value.trim();
+      const selectedChain = $("chainSelect").value;
       if(!ca){ toast("Add a contract first."); return; }
       // Try to re-use last fetched data by calling Dexscreener quickly
       try{
-        const r = await fetch(DEX_URL(ca));
+        const r = await fetch(DEX_URL(selectedChain, ca));
         const j = await r.json();
-        const pair = bestPair(j?.pairs || []);
-        if(!pair){ toast("No pair found to analyze."); return; }
-        await getDobbyInsights(pair, ca);
+        const pair = bestPair(j?.pairs || [], selectedChain);
+        if(!pair){ toast(`No pair found to analyze on ${selectedChain}.`); return; }
+        await getDobbyInsights(pair, ca, selectedChain);
         setLastUpdated();
       }catch(e){ toast("Could not refresh insights."); }
     });
